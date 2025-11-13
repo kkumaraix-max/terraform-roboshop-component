@@ -20,10 +20,10 @@ resource "terraform_data" "main" {
   ]
   
   connection {
-    type     = "ssh"
-    user     = "ec2-user"
+    type = "ssh"
+    user = "ec2-user"
     password = "DevOps321"
-    host     = aws_instance.main.private_ip
+    host = aws_instance.main.private_ip
   }
 
   provisioner "file" {
@@ -41,12 +41,12 @@ resource "terraform_data" "main" {
 
 resource "aws_ec2_instance_state" "main" {
   instance_id = aws_instance.main.id
-  state       = "stopped"
+  state = "stopped"
   depends_on = [terraform_data.main]
 }
 
 resource "aws_ami_from_instance" "main" {
-  name               = "${local.common_name_suffix}-${var.component}-ami"
+  name = "${local.common_name_suffix}-${var.component}-ami"
   source_instance_id = aws_instance.main.id
   depends_on = [aws_ec2_instance_state.main]
   tags = merge (
@@ -58,10 +58,10 @@ resource "aws_ami_from_instance" "main" {
 }
 
 resource "aws_lb_target_group" "main" {
-  name     = "${local.common_name_suffix}-${var.component}"
-  port     = local.tg_port # if frontend port is 80, otherwise port is 8080
+  name = "${local.common_name_suffix}-${var.component}"
+  port = local.tg_port # if frontend port is 80, otherwise port is 8080
   protocol = "HTTP"
-  vpc_id   = local.vpc_id
+  vpc_id = local.vpc_id
   deregistration_delay = 60 # waiting period before deleting the instance
 
   health_check {
@@ -123,18 +123,18 @@ resource "aws_launch_template" "main" {
 }
 
 resource "aws_autoscaling_group" "main" {
-  name                      = "${local.common_name_suffix}-${var.component}"
-  max_size                  = 10
-  min_size                  = 1
+  name = "${local.common_name_suffix}-${var.component}"
+  max_size = 10
+  min_size = 1
   health_check_grace_period = 100
-  health_check_type         = "ELB"
-  desired_capacity          = 1
-  force_delete              = false
+  health_check_type = "ELB"
+  desired_capacity = 1
+  force_delete = false
   launch_template {
-    id      = aws_launch_template.main.id
+    id = aws_launch_template.main.id
     version = aws_launch_template.main.latest_version
   }
-  vpc_zone_identifier       = local.private_subnet_ids
+  vpc_zone_identifier = local.private_subnet_ids
   target_group_arns = [aws_lb_target_group.main.arn]
 
   instance_refresh {
@@ -153,8 +153,8 @@ resource "aws_autoscaling_group" "main" {
       }
     )
     content {
-      key                 = tag.key
-      value               = tag.value
+      key = tag.key
+      value = tag.value
       propagate_at_launch = true
     }
   }
@@ -167,8 +167,8 @@ resource "aws_autoscaling_group" "main" {
 
 resource "aws_autoscaling_policy" "main" {
   autoscaling_group_name = aws_autoscaling_group.main.name
-  name                   = "${local.common_name_suffix}-${var.component}"
-  policy_type            = "TargetTrackingScaling"
+  name = "${local.common_name_suffix}-${var.component}"
+  policy_type = "TargetTrackingScaling"
 
   target_tracking_configuration {
     predefined_metric_specification {
@@ -181,10 +181,10 @@ resource "aws_autoscaling_policy" "main" {
 
 resource "aws_lb_listener_rule" "main" {
   listener_arn = local.listener_arn
-  priority     = var.rule_priority
+  priority = var.rule_priority
 
   action {
-    type             = "forward"
+    type = "forward"
     target_group_arn = aws_lb_target_group.main.arn
   }
 
